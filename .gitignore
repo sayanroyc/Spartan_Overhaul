@@ -45,3 +45,8 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+*.pyc
+# don't include third-party dependencies.
+!lib/README.md
+.DS_Store
