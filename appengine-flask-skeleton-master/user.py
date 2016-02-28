@@ -4,7 +4,7 @@ import global_vars
 from google.appengine.ext import ndb
 from google.appengine.api import search
 from gcloud import storage
-from models import User,Category,CategoryWeight
+from models import User,Listing,Category,CategoryWeight
 from error_handlers import InvalidUsage
 
 app = Flask(__name__)
@@ -34,6 +34,13 @@ def create_user():
 	if not bool(facebook_id):
 		facebook_id = None
 
+	if signup_method != 'Facebook':
+		if not phone_number:
+			raise InvalidUsage('Phone number is required!', 400)
+		if not password:
+			raise InvalidUsage('Password is required!', 400)
+		
+
 	# Validate password, email, and phone_number
 	validate_password(password)
 	validate_email(email)
@@ -46,10 +53,17 @@ def create_user():
 	for cat in categories.iter():
 		cat_weight = CategoryWeight(category=cat.key, weight=1.0)
 		category_weights.append(cat_weight)
-		
+
+
+	status = 'Active'
+	location = ndb.GeoPt(40.112814,-88.231786)
 
 	# Add user to Datastore
-	u = User(first_name=first_name, last_name=last_name, category_weights=category_weights, phone_number=phone_number, is_phone_number_verified=False, email=email, is_email_verified=False, password=password, facebook_id=facebook_id, signup_method=signup_method, last_known_location=ndb.GeoPt(40.112814,-88.231786), credit=0.0, debit=0.0, date_created=now, date_last_modified=now)
+	u = User(first_name=first_name, last_name=last_name, category_weights=category_weights, 
+			 phone_number=phone_number, is_phone_number_verified=False, email=email, 
+			 is_email_verified=False, password=password, facebook_id=facebook_id, 
+			 signup_method=signup_method, last_known_location=location,
+			 credit=0.0, debit=0.0, status=status)
 	# u = User(first_name=first_name, last_name=last_name, category_weights=category_weights, phone_number=phone_number, is_phone_number_verified=False, email=email, is_email_verified=False, password=password, facebook_id=facebook_id, signup_method=signup_method, last_known_location=ndb.GeoPt(location_lat,location_lon), credit=0.0, debit=0.0, date_created=now, date_last_modified=now)
 	try:
 		user_key = u.put()
@@ -69,12 +83,183 @@ def create_user():
 	except:
 		abort(500)
 
-	now_str = get_current_datetime()
 
-
-	data = {'user_id':user_id, 'date_created':now_str, 'date_last_modified':now_str}
+	data = {'user_id':user_id, 'date_created':u.date_created, 'date_last_modified':u.date_last_modified}
 	resp = jsonify(data)
 	resp.status_code = 201
+	return resp
+
+
+
+
+# Delete a user object from Search API and set User status to 'Deactivated'
+@app.route('/user/deactivate/user_id=<int:user_id>', methods=['DELETE'])
+def deactivate_user(user_id):# Edit Datastore entity
+	# Get the user
+	u = User.get_by_id(user_id)
+	if u is None:
+		raise InvalidUsage('User ID does not match any existing user', 400)
+
+	if u.status == 'Deactivated':
+		raise InvalidUsage('User is already deactivated!', 400)
+
+	# Set user status to 'Deactivated'
+	u.status = 'Deactivated'
+
+	# Set all of the user's listings to 'Deactivated'
+	u_key = ndb.Key('User', user_id)
+	# q = Listing.query(ndb.AND(Listing.owner == u_key, Listing.status != 'Deleted')).fetch()
+	q = Listing.query(Listing.owner == u_key).fetch()
+	for listing in q:
+		# l = Listing.get_by_id(listing_key)
+		# l = listing_key.get()
+		listing.status = 'Deactivated'
+		try:
+			listing.put()
+		except:
+			abort(500)
+
+
+	# Add the updated user status to the Datastore
+	try:
+		u.put()
+	except:
+		abort(500)
+
+
+	# Delete Search App entity
+	try:
+		index = search.Index(name='User')
+		index.delete(str(user_id))
+	except:
+		abort(500)
+
+
+
+	# Return response
+	data = {'user_id deactivated':user_id, 'date_deactivated':u.date_last_modified}
+	resp = jsonify(data)
+	resp.status_code = 200
+	return resp
+
+
+
+
+# Reactivate a user by adding it to Search API and set User status to 'Active'
+@app.route('/user/reactivate/user_id=<int:user_id>', methods=['POST'])
+def reactivate_user(user_id):
+	# Get the user
+	u = User.get_by_id(user_id)
+	if u is None:
+		raise InvalidUsage('User ID does not match any existing user', 400)
+
+	if u.status == 'Active':
+		raise InvalidUsage('User is already active!', 400)
+
+	# Set user status to 'Active'
+	u.status = 'Active'
+
+	u.is_phone_number_verified = False
+	u.is_email_verified = False
+	
+	first_name			= u.first_name 
+	last_name			= u.last_name
+	email				= u.email
+	phone_number		= u.phone_number 
+	date_created		= u.date_created
+
+	# Add the updated user status to the Datastore
+	try:
+		u.put()
+	except:
+		abort(500)
+
+
+	# Add reactivated user to the Search App
+	reactivated_user = search.Document(
+			doc_id=str(user_id),
+			fields=[search.TextField(name='name', value=first_name+' '+last_name),
+					search.TextField(name='phone_number', value=phone_number),
+					search.TextField(name='email', value=email)])
+	try:
+		index = search.Index(name='User')
+		index.put(reactivated_user)
+	except:
+		abort(500)
+
+
+	data = {'user_id':user_id, 'date_created':date_created, 'date_last_modified':u.date_last_modified}
+	resp = jsonify(data)
+	resp.status_code = 201
+	return resp
+
+
+# Update a user's information
+@app.route('/user/update/user_id=<int:user_id>', methods=['POST'])
+def update_user(user_id):
+	json_data 		= request.get_json()
+	first_name 		= json_data.get('first_name','')
+	last_name 		= json_data.get('last_name','')
+	email 			= json_data.get('email','')
+	phone_number 	= json_data.get('phone_number','')
+
+	if not bool(first_name):
+		raise InvalidUsage('First name cannot be left empty.', 400)
+	if not bool(last_name):
+		raise InvalidUsage('Last name cannot be left empty.', 400)
+	if not bool(email):
+		raise InvalidUsage('Email cannot be left empty.', 400)		
+	if not bool(phone_number):
+		raise InvalidUsage('Phone number cannot be left empty.', 400)
+
+
+	# Get the user
+	u = User.get_by_id(user_id)
+	if u is None:
+		raise InvalidUsage('User ID does not match any existing user', 400)
+
+	# Validate email and phone number before updating anything
+	if u.email != email:
+		validate_email(email)
+	if u.phone_number != phone_number:
+		validate_phone(phone_number)
+
+	# If the phone number is different, phone number is no longer verified 
+	if phone_number != u.phone_number:
+		u.is_phone_number_verified = False
+
+	# If the email is different, email is no longer verified
+	if email != u.email:
+		u.is_email_verified = False
+	
+	# Update user attributes
+	u.first_name 		 = first_name
+	u.last_name 		 = last_name
+	u.email 			 = email
+	u.phone_number 		 = phone_number
+	
+	# Add the updated user to the Datastore
+	try:
+		u.put()
+	except:
+		abort(500)
+
+	# Add updated user to the Search App
+	updated_user = search.Document(
+			doc_id=str(user_id),
+			fields=[search.TextField(name='name', value=first_name+' '+last_name),
+					search.TextField(name='phone_number', value=phone_number),
+					search.TextField(name='email', value=email)])
+	try:
+		index = search.Index(name='User')
+		index.put(updated_user)
+	except:
+		abort(500)
+
+	# Return the fields of the new user
+	data = {'first_name':first_name, 'last_name':last_name, 'phone_number':phone_number, 'is_phone_number_verified':u.is_phone_number_verified, 'email':email, 'is_email_verified':u.is_email_verified, 'date_last_modified':u.date_last_modified}
+	resp = jsonify(data)
+	resp.status_code = 200
 	return resp
 
 
@@ -137,37 +322,10 @@ def delete_user_image(path):
 	# path = str(user_id)+'/profile_picture.jpg'
 	bucket.delete_blob(path)
 
-	now_str = get_current_datetime()
+	now = datetime.datetime.now()
 
 	# Return response
-	resp = jsonify({'picture_id deleted':path, 'date_deleted':now_str})
-	resp.status_code = 200
-	return resp
-
-
-
-
-# Delete a user object from Datastore and Search API
-@app.route('/user/delete/user_id=<int:user_id>', methods=['DELETE'])
-def delete_user(user_id):
-	# Delete Datastore entity
-	try:
-		ndb.Key('User', user_id).delete()
-	except:
-		abort(500)
-
-	# Delete Search API entity
-	try:
-		index = search.Index(name='User')
-		index.delete(str(user_id))
-	except:
-		abort(500)
-
-	now_str = get_current_datetime()
-
-	# Return response
-	data = {'user_id deleted':user_id, 'date_deleted':now_str}
-	resp = jsonify(data)
+	resp = jsonify({'picture_id deleted':path, 'date_deleted':now})
 	resp.status_code = 200
 	return resp
 
@@ -194,86 +352,18 @@ def get_user(user_id):
 
 	path = str(user_id) + '/profile_picture.jpg'
 	user_img = bucket.get_blob(path)
-	user_img_media_link = user_img.media_link
-
-
-	data = {'user_id':str(user_id), 'first_name':first_name, 'last_name':last_name, 'phone_number':phone_number, 'email':email, 'image_path':path, 'image_media_link':user_img_media_link}
-
-	resp = jsonify(data)
-	resp.status_code = 200
-	return resp
-
-
-
-
-# Update a user's  information
-@app.route('/user/update/user_id=<int:user_id>', methods=['POST'])
-def update_user(user_id):
-	json_data 		= request.get_json()
-	first_name 		= json_data.get('first_name','')
-	last_name 		= json_data.get('last_name','')
-	email 			= json_data.get('email','')
-	phone_number 	= json_data.get('phone_number','')
-
-	if not bool(first_name):
-		raise InvalidUsage('First name cannot be left empty.', 400)
-	if not bool(last_name):
-		raise InvalidUsage('Last name cannot be left empty.', 400)
-	if not bool(email):
-		raise InvalidUsage('Email cannot be left empty.', 400)		
-	if not bool(phone_number):
-		raise InvalidUsage('Phone number cannot be left empty.', 400)
-
-
-	# Get the user
-	u = User.get_by_id(user_id)
-	if u is None:
-		raise InvalidUsage('User ID does not match any existing user', 400)
-
-	# Validate email and phone number before updating anything
-	if u.email != email:
-		validate_email(email)
-	if u.phone_number != phone_number:
-		validate_phone(phone_number)
-
-	# Get the current time
-	now_resp = get_current_datetime()
-
-	# If the phone number is different, phone number is no longer verified 
-	if phone_number != u.phone_number:
-		u.is_phone_number_verified = False
-
-	# If the email is different, email is no longer verified
-	if email != u.email:
-		u.is_email_verified = False
 	
-	# Update user attributes
-	u.first_name 		 = first_name
-	u.last_name 		 = last_name
-	u.email 			 = email
-	u.phone_number 		 = phone_number
-	u.date_last_modified = now
-	
-	# Add the updated user to the Datastore
-	try:
-		u.put()
-	except:
-		abort(500)
+	if user_img == None:
+		user_img_media_link = None
+		path = None
+	else:
+		user_img_media_link = user_img.media_link
+		image_path = user_img.path
 
-	# Add updated user to the Search App
-	updated_user = search.Document(
-			doc_id=str(user_id),
-			fields=[search.TextField(name='name', value=first_name+' '+last_name),
-					search.TextField(name='phone_number', value=phone_number),
-					search.TextField(name='email', value=email)])
-	try:
-		index = search.Index(name='User')
-		index.put(updated_user)
-	except:
-		abort(500)
 
-	# Return the fields of the new user
-	data = {'first_name':first_name, 'last_name':last_name, 'phone_number':phone_number, 'is_phone_number_verified':u.is_phone_number_verified, 'email':email, 'is_email_verified':u.is_email_verified, 'date_last_modified':now_resp}
+
+	data = {'user_id':str(user_id), 'first_name':first_name, 'last_name':last_name, 'phone_number':phone_number, 'email':email, 'image_path':image_path, 'image_media_link':user_img_media_link}
+
 	resp = jsonify(data)
 	resp.status_code = 200
 	return resp
@@ -290,7 +380,7 @@ def validate_password(password):
 # Check if a user is already registered with the given email address
 def validate_email(email):
 	if email is not None:
-		q = User.query(User.email == email)
+		q = User.query(ndb.AND(User.email == email, User.status == 'Active'))
 		u = q.get()
 		if u is not None:
 			raise InvalidUsage('Email address is already registered.', status_code=400)
@@ -298,15 +388,11 @@ def validate_email(email):
 # Check if a user is already registered with the given phone number
 def validate_phone(phone_number):
 	if phone_number is not None:
-		q = User.query(User.phone_number == phone_number)
+		q = User.query(ndb.AND(User.phone_number == phone_number, User.status == 'Active'))
 		u = q.get()
 		if u is not None:
 			raise InvalidUsage('Phone number is already registered.', status_code=400)
 
-# Returns a string of the current datetime
-def get_current_datetime():
-	now = datetime.datetime.now()
-	return now.strftime("%Y %m %d %H:%M:%S")
 
 
 

@@ -22,27 +22,37 @@ appcfg.py -A molten-unison-112921 update app.yaml
 
 ########### USER FUNCTIONS ##############
 ### Create User
-curl -H "Content-Type: application/json" -X POST -d "{\"first_name\":\"Lester\", \"last_name\":\"Nygaard\", \"email\":\"lg_killa@gasdfasfdmail.com\", \"phone_number\":\"6451823434\", \"password\":\"password123\", \"signup_method\":\"Phone Number\", \"location_lat\":\"40.106361\", \"location_lon\":\"-88.2327326\"}" http://molten-unison-112921.appspot.com/user/create
+curl -H "Content-Type: application/json" -X POST -d "{\"first_name\":\"JJ\", \"last_name\":\"Qi\", \"email\":\"jj@bygo.io\", \"phone_number\":\"9876549878\", \"password\":\"\", \"signup_method\":\"Phone Number\", \"location_lat\":\"40.106361\", \"location_lon\":\"-88.2327326\"}" http://molten-unison-112921.appspot.com/user/create
 
-### Add/Update User profile picture
-curl -X POST -F "filename=profile_picture.jpg" -F "userfile=@C:/Users/Sayan/Desktop/lion-male-roar.jpg" http://molten-unison-112921.appspot.com/user/new_user_image/user_id=5745865499082752
+### Deactivate User
+curl -X DELETE http://molten-unison-112921.appspot.com/user/deactivate/user_id=5752571553644544
 
-### Delete User Profile Picture
-curl -X DELETE http://molten-unison-112921.appspot.com/user/delete_user_image/user_id=5745865499082752
-
-### Delete User
-curl -X DELETE http://molten-unison-112921.appspot.com/user/delete/user_id=5638830484881408
+### Reactivate User
+curl -H "Content-Type: application/json" -X POST -d {} http://molten-unison-112921.appspot.com/user/reactivate/user_id=5752571553644544
 
 ### Update User
-curl -H "Content-Type: application/json" -X POST -d "{\"first_name\":\"Lester\", \"last_name\":\"Nygaard\", \"email\":\"lg_killa@gmail.com\", \"phone_number\":\"1111111111\"}" http://molten-unison-112921.appspot.com/user/update/user_id=5717271485874176
+curl -H "Content-Type: application/json" -X POST -d "{\"first_name\":\"Sayan\", \"last_name\":\"Roychowdhury\", \"email\":\"sayan@bygo.io\", \"phone_number\":\"7325704976\"}" http://molten-unison-112921.appspot.com/user/update/user_id=5752571553644544
+
+### Add/Update User profile picture
+curl -X POST -F "filename=profile_picture.jpg" -F "userfile=@C:/Users/Sayan/Desktop/10341994_10152165761279163_3623862560801127167_n.jpg" http://molten-unison-112921.appspot.com/user/new_user_image/user_id=5752571553644544
+
+### Delete User Profile Picture
+curl -X DELETE http://molten-unison-112921.appspot.com/user/delete_user_image/path=5752571553644544/profile_picture.jpg
 
 ### Get User Data (also returns a media link to their profile picture)
-curl http://molten-unison-112921.appspot.com/user/get/user_id=5638830484881408
+curl http://molten-unison-112921.appspot.com/user/get/user_id=5752571553644544
+
 
 
 ########### LISTING FUNCTIONS ##############
 ### Create Listing
-curl -H "Content-Type: application/json" -X POST -d "{\"owner_id\":\"5749328048029696\", \"category_id\":\"5699257587728384\", \"name\":\"The Wire Season 1\", \"item_description\":\"Boxed DVD set.\", \"total_value\":\"40\", \"hourly_rate\":\"2\", \"daily_rate\":\"7\", \"weekly_rate\":\"15\"}" http://bygo-client-server.appspot.com/listing/create
+curl -H "Content-Type: application/json" -X POST -d "{\"category_id\":\"5713573250596864\", \"name\":\"Garbage Headphones\", \"item_description\":\"This is a test desc.\", \"total_value\":\"75\", \"hourly_rate\":\"7.5\", \"daily_rate\":\"15\", \"weekly_rate\":\"30\"}" http://molten-unison-112921.appspot.com/listing/create/user_id=5752571553644544
+
+### Delete Listing
+curl -X DELETE http://molten-unison-112921.appspot.com/listing/delete/listing_id=5657382461898752
 
 ### Add listing image
-curl -X POST -F "filename=pp.jpg" -F "userfile=@C:/Users/Sayan/Desktop/lion-male-roar.jpg" http://bygo-client-server.appspot.com/listing/new_listing_image/listing_id=6243983994912768
+curl -X POST -F "filename=belt.jpg" -F "userfile=@C:/Users/Sayan/Desktop/40mmOLChntSglLp2686GovBlkSnp-2.jpg" http://molten-unison-112921.appspot.com/listing/new_listing_image/listing_id=5682617542246400
+
+### Delete listing image
+curl -X DELETE http://molten-unison-112921.appspot.com/listing/delete_listing_image/path=5682617542246400/40mmOLChntSglLp2686GovBlkSnp-2.jpg

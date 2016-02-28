@@ -1,11 +1,7 @@
 from google.appengine.ext import ndb
 
-class Department(ndb.Model):
-	name 				= ndb.StringProperty(required=True)
-
 class Category(ndb.Model):
 	name 				= ndb.StringProperty(required=True)
-	department 			= ndb.KeyProperty(required=True, kind=Department)
 
 class CategoryWeight(ndb.Model):
 	category 			= ndb.KeyProperty(required=True, kind=Category)
@@ -27,8 +23,9 @@ class User(ndb.Model):
 	signup_method 											= ndb.StringProperty(required=True, choices=['Facebook', 'Email', 'Phone Number'])
 	credit 													= ndb.FloatProperty(required=True) # How much money the user owes at the end of the week
 	debit 													= ndb.FloatProperty(required=True) # How much money the user has credited to their account (i.e. $15 from signing up or promotions)
-	date_created 											= ndb.DateTimeProperty(required=True)
-	date_last_modified 										= ndb.DateTimeProperty(required=True)
+	date_created 											= ndb.DateTimeProperty(auto_now_add=True)
+	date_last_modified 										= ndb.DateTimeProperty(auto_now=True)
+	status													= ndb.StringProperty(required=True, choices=['Active', 'Inactive', 'Deactivated'])
 	last_known_location										= ndb.GeoPtProperty()
 	category_weights										= ndb.StructuredProperty(CategoryWeight, repeated=True)
 	# profile_image	 										= ndb.BlobProperty(required=False, indexed=False)
@@ -46,7 +43,7 @@ class Favorite_Meeting_Location(ndb.Model):
 class Listing(ndb.Model):
 	owner 				= ndb.KeyProperty(required=True, kind=User)
 	renter 				= ndb.KeyProperty(kind=User)
-	status 				= ndb.StringProperty(required=True, choices=['Available', 'Reserved', 'Rented', 'Unavailable', 'Damaged'])
+	status 				= ndb.StringProperty(required=True, choices=['Available', 'Reserved', 'Rented', 'Unavailable', 'Damaged', 'Deactivated', 'Deleted'])
 	name 				= ndb.StringProperty(required=True)
 	item_description 	= ndb.StringProperty(required=True)
 	rating		 		= ndb.FloatProperty()	# Value of -1 is used to signal no rating
@@ -55,8 +52,8 @@ class Listing(ndb.Model):
 	daily_rate 			= ndb.FloatProperty(required=True)
 	weekly_rate			= ndb.FloatProperty(required=True)
 	category 			= ndb.KeyProperty(required=True, kind=Category)
-	date_created		= ndb.DateTimeProperty(required=True)
-	date_last_modified 	= ndb.DateTimeProperty(required=True)
+	date_created		= ndb.DateTimeProperty(auto_now_add=True)
+	date_last_modified 	= ndb.DateTimeProperty(auto_now=True)
 	location			= ndb.GeoPtProperty(required=True, indexed=True)
 	# location_lat		= ndb.FloatProperty(required=True)
 	# location_lon		= ndb.FloatProperty(required=True)
