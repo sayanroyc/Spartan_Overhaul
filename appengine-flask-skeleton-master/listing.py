@@ -105,8 +105,68 @@ def delete_listing(listing_id):
 
 
 
+# Update a listing
+@app.route('/listing/update/listing_id=<int:listing_id>', methods=['POST'])
+def update_listing(listing_id):
+	json_data 		 = request.get_json()
+	name 			 = json_data.get('name','')
+	category_id 	 = int(json_data.get('category_id',''))
+	total_value 	 = float(json_data.get('total_value',''))
+	hourly_rate 	 = float(json_data.get('hourly_rate',''))
+	daily_rate 		 = float(json_data.get('daily_rate',''))
+	weekly_rate		 = float(json_data.get('weekly_rate',''))
+	status 			 = json_data.get('status','')
+	item_description = json_data.get('item_description','')
+
+	# Get the listing
+	l = Listing.get_by_id(listing_id)
+	if l is None:
+		raise InvalidUsage('ItemID does not match any existing item', status_code=400)
+	
+	# Get the Category key
+	category_key = ndb.Key('Category', category_id)
+
+	# Update the item attributes
+	l.name 				= name
+	l.category 			= category_key
+	l.total_value 		= total_value
+	l.hourly_rate		= hourly_rate
+	l.daily_rate 		= daily_rate
+	l.weekly_rate		= weekly_rate
+	l.item_description 	= item_description
+	l.status 			= status
+
+	# Add the updated item to the Datastore
+	try:
+		l.put()
+	except:
+		abort(500)
+
+	# Add the updated item to the Search API
+	updated_item = search.Document(
+			doc_id=str(listing_id),
+			fields=[search.TextField(name='name', value=name),
+					search.GeoField(name='location', value=search.GeoPoint(old_listing.location.lat,old_listing.location.lon)),
+					search.TextField(name='owner_id', value=str(l.owner.id()))])
+
+
+	try:
+		index = search.Index(name='Listing')
+		index.put(new_item)
+	except search.Error:
+		logging.exception('Error: LISTING put failed')
+
+	# Return the attributes of the new item
+	data = {'name':name, 'category_id':str(category_id), 'total_value':total_value, 'hourly_rate':hourly_rate, 'daily_rate':daily_rate, 'weekly_rate':weekly_rate, 'status':status, 'item_description':item_description}
+	resp = jsonify(data)
+	resp.status_code = 200
+	return resp
+
+
+
+
 # Add a listing image
-MAX_NUM_ITEM_IMAGES = 5
+# MAX_NUM_ITEM_IMAGES = 5
 @app.route('/listing/new_listing_image/listing_id=<int:listing_id>', methods=['POST'])
 def new_listing_image(listing_id):
 	# user_id = request.form['user_id']
