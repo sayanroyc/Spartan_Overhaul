@@ -40,13 +40,7 @@ curl -X POST -F "filename=profile_picture.jpg" -F "userfile=@C:/Users/Sayan/Desk
 curl -X DELETE http://molten-unison-112921.appspot.com/user/delete_user_image/path=5752571553644544/profile_picture.jpg
 
 ### Get User Data (also returns a media link to their profile picture)
-curl http://molten-unison-112921.appspot.com/user/get_info/user_id=5752571553644544
-
-### Get User's Listings (user == owner)
-curl http://molten-unison-112921.appspot.com/user/get_listings/user_id=5752571553644544
-
-### Get User's Rented Listings (user == renter)
-curl http://molten-unison-112921.appspot.com/user/get_rented_listings/user_id=5752571553644544
+curl http://molten-unison-112921.appspot.com/user/get/user_id=5752571553644544
 
 
 
@@ -56,8 +50,6 @@ curl -H "Content-Type: application/json" -X POST -d "{\"category_id\":\"57135732
 
 ### Delete Listing
 curl -X DELETE http://molten-unison-112921.appspot.com/listing/delete/listing_id=5657382461898752
-
-### Update Listing
 
 ### Add listing image
 curl -X POST -F "filename=belt.jpg" -F "userfile=@C:/Users/Sayan/Desktop/40mmOLChntSglLp2686GovBlkSnp-2.jpg" http://molten-unison-112921.appspot.com/listing/new_listing_image/listing_id=5682617542246400
