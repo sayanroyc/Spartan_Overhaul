@@ -84,6 +84,30 @@ def update_meeting_location(location_id):
 
 
 
+
+# Get a user's meeting locations
+@app.route('/meeting_location/get_meeting_locations/user_id=<int:user_id>', methods=['GET'])
+def get_user_meeting_locations(user_id):
+	u = User.get_by_id(user_id)
+	if u is None:
+		raise InvalidUsage('User ID does not match any existing user', 400)
+
+	u_key	= ndb.Key('User', user_id)
+	qry 	= MeetingLocation.query(MeetingLocation.user == u_key)
+	listings = qry.fetch()
+
+	data = []
+	for l in listings:
+		listing_data = {'location_id':l.key.id(), 'name':l.name, 'google_places_id':l.google_places_id,
+						'address':l.address, 'is_private':l.is_private}
+		data += [listing_data]
+
+	resp = jsonify({'meeting locations':data})
+	resp.status_code = 200
+	return resp
+
+
+
 ### Server Error Handlers ###
 @app.errorhandler(InvalidUsage)
 def handle_invalid_usage(error):

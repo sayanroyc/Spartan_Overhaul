@@ -77,7 +77,10 @@ curl http://molten-unison-112921.appspot.com/listing/get_rented_listings/user_id
 curl -H "Content-Type: application/json" -X POST -d "{\"google_places_id\":\"ChIJv5lMaT_XDIgRsEtHigVjhEY\", \"name\":\"McDonald's\", \"address\":\"616 E Green St, Champaign, IL 61820, United States\", \"is_private\":\"0\"}" http://molten-unison-112921.appspot.com/meeting_location/create/user_id=5752571553644544
 
 ### Delete Meeting Location
-curl -X DELETE http://molten-unison-112921.appspot.com/meeting_location/location_id=5752571553644544
+curl -X DELETE http://molten-unison-112921.appspot.com/meeting_location/delete/location_id=5629652273987584
 
 ### Update Meeting Location
-curl -H "Content-Type: application/json" -X POST -d "{\"google_places_id\":\"ChIJv5lMaT_XDIgRsEtHigVjhEY\", \"name\":\"My home\", \"address\":\"502 E. Springfield Ave, Champaign, IL 61820\", \"is_private\":\"0\"}" http://molten-unison-112921.appspot.com/meeting_location/update/location_id=5629652273987584
+curl -H "Content-Type: application/json" -X POST -d "{\"google_places_id\":\"ChIJv5lMaT_XDIgRsEtHigVjhEY\", \"name\":\"i live here\", \"address\":\"PRIVATE\", \"is_private\":\"0\"}" http://molten-unison-112921.appspot.com/meeting_location/update/location_id=5629652273987584
+
+### Get User's Meeting Locations
+curl http://molten-unison-112921.appspot.com/meeting_location/get_meeting_locations/user_id=5752571553644544
