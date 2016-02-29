@@ -30,8 +30,8 @@ handlers:
 - url: /listing/.*
   script: listing.app
 
-# - url: /request/.*
-#   script: request.app
+- url: /meeting_location/.*
+  script: meeting_location.app
 
 # - url: /search/.*
 #   script: search.app

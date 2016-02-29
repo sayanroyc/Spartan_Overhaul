@@ -31,13 +31,13 @@ class User(ndb.Model):
 	# profile_image	 										= ndb.BlobProperty(required=False, indexed=False)
 	# TODO: More required fields like BrainTree client token, images, address, etc.
 
-class Favorite_Meeting_Location(ndb.Model):
+class MeetingLocation(ndb.Model):
 	user 				= ndb.KeyProperty(required=True, kind=User)
 	google_places_id 	= ndb.StringProperty(required=True)
 	name 				= ndb.StringProperty(required=True)
 	address 			= ndb.StringProperty(required=True)
-	date_created		= ndb.DateTimeProperty(required=True)
-	date_last_modified	= ndb.DateTimeProperty(required=True)
+	date_created		= ndb.DateTimeProperty(auto_now_add=True)
+	date_last_modified 	= ndb.DateTimeProperty(auto_now=True)
 	is_private 			= ndb.BooleanProperty(required=True) # Whether or not any user can see this address
 
 class Listing(ndb.Model):
@@ -72,9 +72,9 @@ class Meeting_Event(ndb.Model):
 	deliverer 					= ndb.StringProperty(required=True, choices=['Owner', 'Renter']) # person who has the item
 	status 						= ndb.StringProperty(required=True, choices=['Proposed', 'Scheduled', 'Delayed', 'Canceled', 'Rejected', 'Concluded'])
 	proposed_meeting_times 		= ndb.StructuredProperty(Proposed_Meeting_Time, repeated=True)
-	proposed_meeting_locations 	= ndb.KeyProperty(kind=Favorite_Meeting_Location, repeated=True)
+	proposed_meeting_locations 	= ndb.KeyProperty(kind=MeetingLocation, repeated=True)
 	time 						= ndb.DateTimeProperty()
-	location 					= ndb.KeyProperty(kind=Favorite_Meeting_Location)
+	location 					= ndb.KeyProperty(kind=MeetingLocation)
 	date_created 				= ndb.DateTimeProperty()
 
 	# FIXME: Are these necessary? 
