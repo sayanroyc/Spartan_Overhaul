@@ -33,42 +33,35 @@ def get_advertised_listings_partial_snapshots(user_id, radius_miles):
 
 	# Get all of the Listings local to the current user
 	index = search.Index(name='Listing')
-	query_string = 'distance(location, geopoint('+str(user_location_lat)+','+str(user_location_lon)+')) < '+str(radius_meters)
+	query_string = 'distance(location, geopoint('+str(user_location_lat)+','+str(user_location_lon)+')) < '+str(radius_meters)+' AND NOT owner_id='+str(user_id)
 
 	# FIXME: Currently returns only 20 items at a time (search limit). Also, return ids_only!
 	try:
 		# FIXME: add limit to the number of items returned
 		results = index.search(query_string)
-		matched_listings = []
-		for matched_listing in results:
-			l = Listing.get_by_id(int(matched_listing.doc_id))
-			if l is None:
-				# If there is an inconsistency and item is not found in Datastore, delete it from search API
-				# Raise some error here...
-				# raise InvalidUsage('Inconsistency in databases. Item not found in Datastore.', status_code=402)
-				continue
-			owner_id = l.owner.integer_id()
-			if user_id == owner_id:
-				# We don't want to display the owner's own items.. 
-				continue
-			# FIXME: send only what's needed..
-			listing_id 			= str(l.key.id())
-			name 				= l.name
-			listing_value		= float(l.total_value)
-			daily_rate			= float(l.daily_rate)
-			category_id 		= str(l.category.id())
-			location 			= str(l.location)
-			distance 			= haversine(l.location.lat,l.location.lon,user_location_lat,user_location_lon)
-			score 				= item_score(distance, radius_miles, listing_value, global_vars.MAX_PRICE, l.category, u.category_weights)
-			rating				= l.rating
-			image_media_links	= get_listing_images(listing_id)
-			listing_data		= {'listing_id':listing_id, 'name':name, 'rating':rating, 'category_id':category_id, 'daily_rate':daily_rate, 'location':location, 'distance':distance, 'score':score, 'image_media_links':image_media_links}
-			matched_listings += [listing_data]
 	except search.Error:
-		logging.exception('Search failed')
+		abort(500)
 
-	# Return a list of items
-	# resp 			 = jsonify({'results near ('+str(user_location_lat)+', '+str(user_location_lon)+')':matched_listings})
+
+	matched_listings = []
+	for matched_listing in results:
+		try:
+			l = Listing.get_by_id(int(matched_listing.doc_id))
+		except:
+			abort(500)
+		if l is None:
+			# If there is an inconsistency and item is not found in Datastore, raise some error here...
+			# raise InvalidUsage('Inconsistency in databases. Item not found in Datastore.', status_code=400)
+			continue
+		# FIXME: send only what's needed..
+		distance 		= haversine(l.location.lat,l.location.lon,user_location_lat,user_location_lon)
+		listing_data	= {'listing_id':l.key.id(), 'name':l.name, 'rating':l.rating, 
+							'category_id':l.category.id(), 'daily_rate':l.daily_rate,
+							'distance':distance,
+							'score':item_score(distance, radius_miles, l.total_value, global_vars.MAX_PRICE, l.category, u.category_weights), 
+							'image_media_links':get_listing_images(l.key.id())}
+		matched_listings += [listing_data]
+
 	resp 			 = jsonify({'listings':matched_listings})
 	resp.status_code = 200
 	return resp
