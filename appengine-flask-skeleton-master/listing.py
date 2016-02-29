@@ -72,14 +72,6 @@ def create_new_listing(user_id):
 # Delete listing from Search API and set status to 'Deleted' in Datastore
 @app.route('/listing/delete/listing_id=<int:listing_id>', methods=['DELETE'])
 def delete_listing(listing_id):
-	# Delete Search App entity
-	try:
-		index = search.Index(name='Listing')
-		index.delete(str(listing_id))
-	except:
-		abort(500)
-
-
 	# Edit Datastore entity
 	# Get the listing
 	l = Listing.get_by_id(listing_id)
@@ -92,6 +84,14 @@ def delete_listing(listing_id):
 	# Add the updated listing status to the Datastore
 	try:
 		l.put()
+	except:
+		abort(500)
+
+
+	# Delete Search App entity
+	try:
+		index = search.Index(name='Listing')
+		index.delete(str(listing_id))
 	except:
 		abort(500)
 
@@ -124,11 +124,11 @@ def update_listing(listing_id):
 		raise InvalidUsage('ItemID does not match any existing item', status_code=400)
 	
 	# Get the Category key
-	category_key = ndb.Key('Category', category_id)
+	# category_key = ndb.Key('Category', category_id)
 
 	# Update the item attributes
 	l.name 				= name
-	l.category 			= category_key
+	l.category 			= ndb.Key('Category', category_id)
 	l.total_value 		= total_value
 	l.hourly_rate		= hourly_rate
 	l.daily_rate 		= daily_rate
@@ -143,18 +143,24 @@ def update_listing(listing_id):
 		abort(500)
 
 	# Add the updated item to the Search API
-	updated_item = search.Document(
-			doc_id=str(listing_id),
-			fields=[search.TextField(name='name', value=name),
-					search.GeoField(name='location', value=search.GeoPoint(old_listing.location.lat,old_listing.location.lon)),
-					search.TextField(name='owner_id', value=str(l.owner.id()))])
+	if l.status == 'Available':
+		updated_item = search.Document(
+				doc_id=str(listing_id),
+				fields=[search.TextField(name='name', value=name),
+						search.GeoField(name='location', value=search.GeoPoint(l.location.lat,l.location.lon)),
+						search.TextField(name='owner_id', value=str(l.owner.id()))])
 
-
-	try:
-		index = search.Index(name='Listing')
-		index.put(new_item)
-	except search.Error:
-		logging.exception('Error: LISTING put failed')
+		try:
+			index = search.Index(name='Listing')
+			index.put(updated_item)
+		except:
+			abort(500)
+	else:
+		try:
+			index = search.Index(name='Listing')
+			index.delete(str(listing_id))
+		except:
+			abort(500)
 
 	# Return the attributes of the new item
 	data = {'name':name, 'category_id':str(category_id), 'total_value':total_value, 'hourly_rate':hourly_rate, 'daily_rate':daily_rate, 'weekly_rate':weekly_rate, 'status':status, 'item_description':item_description}
@@ -182,17 +188,6 @@ def new_listing_image(listing_id):
 	# Create client for interfacing with Cloud Storage API
 	client = storage.Client()
 	bucket = client.get_bucket(global_vars.LISTING_IMG_BUCKET)
-
-	# Returns an iterator through all images for the item
-	# listing_img_objects = bucket.list_blobs(prefix=str(listing_id))
-
-	# Count how many images we have (is there a better way to do this?)
-	# curr_item_images = 0
-	# for img in listing_img_objects:
-	# 	curr_item_images += 1
-
-	# if curr_item_images >= MAX_NUM_ITEM_IMAGES:
-	# 	raise InvalidUsage('Too many pictures!', status_code=400)
 
 	# Calculating size this way is not very efficient. Is there another way?
 	userfile.seek(0, 2)
@@ -226,13 +221,50 @@ def delete_listing_image(path):
 	bucket.delete_blob(path)
 
 	now = datetime.datetime.now()
-	now_str = now.strftime("%Y %m %d %H:%M:%S")
 
 	# Return response
-	resp = jsonify({'picture_id deleted':path, 'date_deleted':now_str})
+	resp = jsonify({'picture_id deleted':path, 'date_deleted':now})
 	resp.status_code = 200
 	return resp
 
+
+
+
+# Get a listing's info
+@app.route('/listing/get_info/listing_id=<int:listing_id>', methods=['GET'])
+def get_listing_info(listing_id):
+	l = Listing.get_by_id(listing_id)
+	if l is None:
+		raise InvalidUsage('Listing does not exist!', status_code=400)
+
+	listing_img_media_links = get_listing_images(listing_id)
+
+	# Return the attributes of the new item
+	listing_data = {'listing_id':l.key.id(), 'name':l.name, 'owner_id':l.owner.id(), 
+					'renter_id':l.renter.id() if l.renter else None,'status':l.status, 
+					'item_description':l.item_description, 'rating':l.rating, 'total_value':l.total_value, 
+					'hourly_rate':l.hourly_rate, 'daily_rate':l.daily_rate, 'weekly_rate':l.weekly_rate, 
+					'category_id':l.category.id(),'date_last_modified':l.date_last_modified,
+					'image_media_links':listing_img_media_links}
+
+	resp = jsonify(listing_data)
+	resp.status_code = 200
+	return resp
+
+
+
+
+# Helper function to return a listing's image links
+def get_listing_images(listing_id):	
+	client = storage.Client()
+	bucket = client.get_bucket(global_vars.LISTING_IMG_BUCKET)
+
+	listing_img_objects = bucket.list_blobs(prefix=str(listing_id))
+	listing_img_media_links = []
+	for img_object in listing_img_objects:
+		listing_img_media_links += [img_object.media_link]
+
+	return listing_img_media_links
 
 
 

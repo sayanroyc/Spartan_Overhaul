@@ -58,9 +58,13 @@ curl -H "Content-Type: application/json" -X POST -d "{\"category_id\":\"57135732
 curl -X DELETE http://molten-unison-112921.appspot.com/listing/delete/listing_id=5657382461898752
 
 ### Update Listing
+curl -H "Content-Type: application/json" -X POST -d "{\"category_id\":\"5713573250596864\", \"name\":\"Knockoff Headphones\", \"item_description\":\"I AM A LIAR\", \"total_value\":\"75\", \"hourly_rate\":\"7.5\", \"daily_rate\":\"15\", \"weekly_rate\":\"30\", \"status\":\"Unlisted\"}" http://molten-unison-112921.appspot.com/listing/update/listing_id=5749563331706880
 
 ### Add listing image
-curl -X POST -F "filename=belt.jpg" -F "userfile=@C:/Users/Sayan/Desktop/40mmOLChntSglLp2686GovBlkSnp-2.jpg" http://molten-unison-112921.appspot.com/listing/new_listing_image/listing_id=5682617542246400
+curl -X POST -F "filename=belt.jpg" -F "userfile=@C:/Users/Sayan/Desktop/8-4-10-logitech60037.jpg" http://molten-unison-112921.appspot.com/listing/new_listing_image/listing_id=5657382461898752
 
 ### Delete listing image
 curl -X DELETE http://molten-unison-112921.appspot.com/listing/delete_listing_image/path=5682617542246400/40mmOLChntSglLp2686GovBlkSnp-2.jpg
+
+### Get a listing's data
+curl http://molten-unison-112921.appspot.com/listing/get_info/listing_id=5657382461898752

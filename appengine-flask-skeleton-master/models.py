@@ -43,7 +43,7 @@ class Favorite_Meeting_Location(ndb.Model):
 class Listing(ndb.Model):
 	owner 				= ndb.KeyProperty(required=True, kind=User)
 	renter 				= ndb.KeyProperty(kind=User)
-	status 				= ndb.StringProperty(required=True, choices=['Available', 'Reserved', 'Rented', 'Unavailable', 'Damaged', 'Deactivated', 'Deleted'])
+	status 				= ndb.StringProperty(required=True, choices=['Available', 'Reserved', 'Rented', 'Unavailable', 'Damaged', 'Unlisted', 'Deactivated', 'Deleted'])
 	name 				= ndb.StringProperty(required=True)
 	item_description 	= ndb.StringProperty(required=True)
 	rating		 		= ndb.FloatProperty()	# Value of -1 is used to signal no rating
