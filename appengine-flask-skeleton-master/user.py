@@ -23,6 +23,8 @@ def create_user():
 	# location_lat 	= float(json_data.get('location_lat',''))
 	# location_lon 	= float(json_data.get('location_lon',''))
 
+	# TODO: get location from client
+
 
 	# If object string is empty '', then set object = None
 	if not bool(password):
@@ -367,60 +369,6 @@ def get_user_info(user_id):
 	data = {'user_id':str(user_id), 'first_name':first_name, 'last_name':last_name, 'phone_number':phone_number, 'email':email, 'image_path':image_path, 'image_media_link':user_img_media_link}
 
 	resp = jsonify(data)
-	resp.status_code = 200
-	return resp
-
-
-
-
-# Get a user's listings
-@app.route('/user/get_listings/user_id=<int:user_id>', methods=['GET'])
-def get_user_listings(user_id):
-	u = User.get_by_id(user_id)
-	if u is None:
-		raise InvalidUsage('User ID does not match any existing user', 400)
-
-	u_key	= ndb.Key('User', user_id)
-	qry 	= Listing.query(Listing.owner == u_key)
-	listings = qry.fetch()
-
-	data = []
-	for l in listings:
-		listing_data = {'listing_id':l.key.id(), 'name':l.name, 'owner_id':l.owner.id(), 
-						'renter_id':l.renter.id() if l.renter else None,'status':l.status, 
-						'item_description':l.item_description, 'rating':l.rating, 'total_value':l.total_value, 
-						'hourly_rate':l.hourly_rate, 'daily_rate':l.daily_rate, 'weekly_rate':l.weekly_rate, 
-						'category_id':l.category.id(),'date_last_modified':l.date_last_modified}
-		data += [listing_data]
-
-	resp = jsonify({'listings':data})
-	resp.status_code = 200
-	return resp
-
-
-
-
-# Get a user's rented listings
-@app.route('/user/get_rented_listings/user_id=<int:user_id>', methods=['GET'])
-def get_user_rented_listings(user_id):
-	u = User.get_by_id(user_id)
-	if u is None:
-		raise InvalidUsage('User ID does not match any existing user', 400)
-
-	u_key	= ndb.Key('User', user_id)
-	qry 	= Listing.query(Listing.renter == u_key)
-	listings = qry.fetch()
-
-	data = []
-	for l in listings:
-		listing_data = {'listing_id':l.key.id(), 'name':l.name, 'owner_id':l.owner.id(), 
-						'renter_id':l.renter.id() if l.renter else None,'status':l.status, 
-						'item_description':l.item_description, 'rating':l.rating, 'total_value':l.total_value, 
-						'hourly_rate':l.hourly_rate, 'daily_rate':l.daily_rate, 'weekly_rate':l.weekly_rate, 
-						'category_id':l.category.id(),'date_last_modified':l.date_last_modified}
-		data += [listing_data]
-
-	resp = jsonify({'listings':data})
 	resp.status_code = 200
 	return resp
 

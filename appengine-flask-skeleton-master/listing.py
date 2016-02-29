@@ -239,6 +239,8 @@ def get_listing_info(listing_id):
 
 	listing_img_media_links = get_listing_images(listing_id)
 
+	# Add function for related items?
+
 	# Return the attributes of the new item
 	listing_data = {'listing_id':l.key.id(), 'name':l.name, 'owner_id':l.owner.id(), 
 					'renter_id':l.renter.id() if l.renter else None,'status':l.status, 
@@ -248,6 +250,61 @@ def get_listing_info(listing_id):
 					'image_media_links':listing_img_media_links}
 
 	resp = jsonify(listing_data)
+	resp.status_code = 200
+	return resp
+
+
+
+# Get a user's listings
+@app.route('/listing/get_listings/user_id=<int:user_id>', methods=['GET'])
+def get_user_listings(user_id):
+	u = User.get_by_id(user_id)
+	if u is None:
+		raise InvalidUsage('User ID does not match any existing user', 400)
+
+	u_key	= ndb.Key('User', user_id)
+	qry 	= Listing.query(Listing.owner == u_key)
+	listings = qry.fetch()
+
+	data = []
+	for l in listings:
+		listing_data = {'listing_id':l.key.id(), 'name':l.name, 'owner_id':l.owner.id(), 
+						'renter_id':l.renter.id() if l.renter else None,'status':l.status, 
+						'item_description':l.item_description, 'rating':l.rating, 'total_value':l.total_value, 
+						'hourly_rate':l.hourly_rate, 'daily_rate':l.daily_rate, 'weekly_rate':l.weekly_rate, 
+						'category_id':l.category.id(),'date_last_modified':l.date_last_modified,
+						'image_media_links':get_listing_images(l.key.id())}
+		data += [listing_data]
+
+	resp = jsonify({'listings':data})
+	resp.status_code = 200
+	return resp
+
+
+
+
+# Get a user's rented listings
+@app.route('/listing/get_rented_listings/user_id=<int:user_id>', methods=['GET'])
+def get_user_rented_listings(user_id):
+	u = User.get_by_id(user_id)
+	if u is None:
+		raise InvalidUsage('User ID does not match any existing user', 400)
+
+	u_key	= ndb.Key('User', user_id)
+	qry 	= Listing.query(Listing.renter == u_key)
+	listings = qry.fetch()
+
+	data = []
+	for l in listings:
+		listing_data = {'listing_id':l.key.id(), 'name':l.name, 'owner_id':l.owner.id(), 
+						'renter_id':l.renter.id() if l.renter else None,'status':l.status, 
+						'item_description':l.item_description, 'rating':l.rating, 'total_value':l.total_value, 
+						'hourly_rate':l.hourly_rate, 'daily_rate':l.daily_rate, 'weekly_rate':l.weekly_rate, 
+						'category_id':l.category.id(),'date_last_modified':l.date_last_modified,
+						'image_media_links':get_listing_images(l.key.id())}
+		data += [listing_data]
+
+	resp = jsonify({'listings':data})
 	resp.status_code = 200
 	return resp
 
@@ -268,11 +325,6 @@ def get_listing_images(listing_id):
 
 
 
-
-# Returns a string of the current datetime
-def get_current_datetime():
-	now = datetime.datetime.now()
-	return now.strftime("%Y %m %d %H:%M:%S")
 
 
 ### Server Error Handlers ###
