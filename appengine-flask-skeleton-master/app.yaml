@@ -57,8 +57,8 @@ handlers:
 # - url: /pricing/.*
 #   script: pricing.app
 
-# - url: /advertised_listings/.*
-#   script: advertised_listings.app
+- url: /advertised_listings/.*
+  script: advertised_listings.app
 
 # - url: /braintree/.*
 #   script: braintree.app

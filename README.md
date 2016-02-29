@@ -84,3 +84,8 @@ curl -H "Content-Type: application/json" -X POST -d "{\"google_places_id\":\"ChI
 
 ### Get User's Meeting Locations
 curl http://molten-unison-112921.appspot.com/meeting_location/get_meeting_locations/user_id=5752571553644544
+
+
+
+########### ADVERTISED LISTINGS FUNCTIONS ##############
+curl http://molten-unison-112921.appspot.com/advertised_listings/snapshots/user_id=6288801441775616/radius=10
