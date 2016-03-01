@@ -22,18 +22,14 @@ def get_advertised_listings_partial_snapshots(user_id, radius_miles):
 	# Get the user
 	u = User.get_by_id(user_id)
 	if u is None:
-		raise InvalidUsage('UserID does not match any existing user', status_code=401)
-
-	# Get the user's location data
-	user_location_lat 	= u.last_known_location.lat
-	user_location_lon 	= u.last_known_location.lon
-
+		raise InvalidUsage('UserID does not match any existing user', status_code=400)
+		
 	# Calculate radius in meters
 	radius_meters 		= radius_miles*METERS_PER_MILE
 
 	# Get all of the Listings local to the current user
 	index = search.Index(name='Listing')
-	query_string = 'distance(location, geopoint('+str(user_location_lat)+','+str(user_location_lon)+')) < '+str(radius_meters)+' AND NOT owner_id='+str(user_id)
+	query_string = 'distance(location, geopoint('+str(u.last_known_location.lat)+','+str(u.last_known_location.lon)+')) < '+str(radius_meters)+' AND NOT owner_id='+str(user_id)
 
 	# FIXME: Currently returns only 20 items at a time (search limit). Also, return ids_only!
 	try:
@@ -43,6 +39,50 @@ def get_advertised_listings_partial_snapshots(user_id, radius_miles):
 		abort(500)
 
 
+	matched_listings = get_matched_listings(u, radius_miles, results)
+
+	resp 			 = jsonify({'listings':matched_listings})
+	resp.status_code = 200
+	return resp
+
+
+
+
+
+ListingsFetchedPerQueryCycle = 100		# Database will return 100 listings per fetch cycle
+MaxNumListingsToReturnToUser = 10		# return 10 listings matching the user's search
+
+@app.route('/advertised_listings/user_id=<int:user_id>/radius=<int:radius_miles>/search=<search_string>')
+def search_listings(user_id, radius_miles, search_string):
+	# Get the user
+	u = User.get_by_id(user_id)
+	if u is None:
+		raise InvalidUsage('UserID does not match any existing user', status_code=400)
+
+	# Calculate radius in meters
+	radius_meters 		= radius_miles*METERS_PER_MILE
+
+	index = search.Index(name='Listing')
+	query_string = 'distance(location, geopoint('+str(u.last_known_location.lat)+','+str(u.last_known_location.lon)+')) < '+str(radius_meters)+' AND NOT owner_id='+str(user_id)+' AND name: '+search_string
+
+	# FIXME: Currently returns only 20 items at a time (search limit). Also, return ids_only!
+	try:
+		# FIXME: add limit to the number of items returned
+		results = index.search(query_string)
+	except search.Error:
+		abort(500)
+
+	matched_listings = get_matched_listings(u, radius_miles, results)
+
+	resp 			 = jsonify({'results matching '+search_string:matched_listings})
+	resp.status_code = 200
+	return resp
+
+
+
+
+# Helper function that returns a detailed list of listings info given a Search API results object
+def get_matched_listings(user, radius_miles, results):
 	matched_listings = []
 	for matched_listing in results:
 		try:
@@ -54,43 +94,17 @@ def get_advertised_listings_partial_snapshots(user_id, radius_miles):
 			# raise InvalidUsage('Inconsistency in databases. Item not found in Datastore.', status_code=400)
 			continue
 		# FIXME: send only what's needed..
-		distance 		= haversine(l.location.lat,l.location.lon,user_location_lat,user_location_lon)
+		distance 		= haversine(l.location.lat,l.location.lon,user.last_known_location.lat,user.last_known_location.lon)
 		listing_data	= {'listing_id':l.key.id(), 'name':l.name, 'rating':l.rating, 
-							'category_id':l.category.id(), 'daily_rate':l.daily_rate,
-							'distance':distance,
-							'score':item_score(distance, radius_miles, l.total_value, global_vars.MAX_PRICE, l.category, u.category_weights), 
+							'daily_rate':l.daily_rate, 'distance':distance,
+							'score':item_score(distance, radius_miles, l.total_value, global_vars.MAX_PRICE, l.category, user.category_weights), 
 							'image_media_links':get_listing_images(l.key.id())}
 		matched_listings += [listing_data]
 
-	resp 			 = jsonify({'listings':matched_listings})
-	resp.status_code = 200
-	return resp
+	return matched_listings
 
-'''
-@app.route('/listings/snapshots_no_user', methods=['POST'])
-def get_default_no_user_listings():
-	json_data = request.get_json()
-	
-	# TODO: Get location data
 
-	# Get all of the items local to the current user
-	# FIXME: Currently returning all items listed in the database
-	qry   = Listing.query()
-	items = qry.fetch(limit=100)
 
-	# Calculate a score for each item
-	data = []
-	for i in items:
-		snapshot_id = str(i.key.id())
-		score 		= float(no_user_score(i))
-		item_data 	= {'snapshot_id':snapshot_id, 'score':score}
-		data += [item_data]
-
-	# Return a list of the scores and 
-	resp 			 = jsonify({'listings':data})
-	resp.status_code = 200
-	return resp
-'''
 
 
 
@@ -99,6 +113,10 @@ distance_weight 		= 0.5
 price_weight 			= 0.5
 category_weight 		= 0
 
+# Function that returns a score for a listing, depending on
+# 1. how far away it is
+# 2. how much it costs
+# 3. how often the user tends to rent items from the same category
 def item_score(dist, rad, price, max_price, item_category, user_category_weights):
 	dist_score = distance_score(dist, rad)
 	pri_score = price_score(price, max_price)
@@ -111,11 +129,9 @@ def item_score(dist, rad, price, max_price, item_category, user_category_weights
 	return (distance_weighted_score + price_weighted_score + category_weighted_score)
 	# return (dist_score, pri_score, cat_score)
 
-
 # maps distance from [0, MAXRADIUS] to [0, 1] and returns a score based on distance
 def distance_score(dist, rad):
 	return -1.0*dist/rad
-
 
 # maps price from [0, MAXPRICE] to [0, 1] and returns a score based on price
 def price_score(price, max_price):

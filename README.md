@@ -71,7 +71,6 @@ curl http://molten-unison-112921.appspot.com/listing/get_listings/user_id=575257
 curl http://molten-unison-112921.appspot.com/listing/get_rented_listings/user_id=5752571553644544
 
 
-
 ########### MEETING LOCATION FUNCTIONS ##############
 ### Create Meeting Location
 curl -H "Content-Type: application/json" -X POST -d "{\"google_places_id\":\"ChIJv5lMaT_XDIgRsEtHigVjhEY\", \"name\":\"McDonald's\", \"address\":\"616 E Green St, Champaign, IL 61820, United States\", \"is_private\":\"0\"}" http://molten-unison-112921.appspot.com/meeting_location/create/user_id=5752571553644544
@@ -89,3 +88,6 @@ curl http://molten-unison-112921.appspot.com/meeting_location/get_meeting_locati
 
 ########### ADVERTISED LISTINGS FUNCTIONS ##############
 curl http://molten-unison-112921.appspot.com/advertised_listings/snapshots/user_id=6288801441775616/radius=10
+
+### Search listings by string
+curl http://molten-unison-112921.appspot.com/advertised_listings/user_id=6288801441775616/radius=10/search=stick%20usb
