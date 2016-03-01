@@ -10,6 +10,9 @@ from math import radians, sin, cos, sqrt, asin
 app = Flask(__name__)
 
 
+# TODO: write functions for getting listings when a user is not logged in
+
+
 # Calculate some similarity score ranking
 # Maybe try to calculate the probability that the user will rent/enjoy/be-interested-in this item 
 # TODO: What are we trying to optimize with this score? The probability of rental or enjoyment or depends?
@@ -17,15 +20,18 @@ app = Flask(__name__)
 # For exisiting users who have built some trust with the system, maybe more value is found through discovery of new items?
 # Tons of experimentation and exploring to do here... This will make/break the entire app
 
+# This partial snapshots function will be displayed when the user first opens the app
+# In the future, we want to display recommended categories of listings that the user might like
+# This function will be replaced, but need something for the MVP..
 @app.route('/advertised_listings/snapshots/user_id=<int:user_id>/radius=<int:radius_miles>')
 def get_advertised_listings_partial_snapshots(user_id, radius_miles):
 	# Get the user
 	u = User.get_by_id(user_id)
 	if u is None:
 		raise InvalidUsage('UserID does not match any existing user', status_code=400)
-		
+
 	# Calculate radius in meters
-	radius_meters 		= radius_miles*METERS_PER_MILE
+	radius_meters = radius_miles*METERS_PER_MILE
 
 	# Get all of the Listings local to the current user
 	index = search.Index(name='Listing')
@@ -52,6 +58,7 @@ def get_advertised_listings_partial_snapshots(user_id, radius_miles):
 ListingsFetchedPerQueryCycle = 100		# Database will return 100 listings per fetch cycle
 MaxNumListingsToReturnToUser = 10		# return 10 listings matching the user's search
 
+# This function returns listings whose names match part of the search string sent by the user
 @app.route('/advertised_listings/user_id=<int:user_id>/radius=<int:radius_miles>/search=<search_string>')
 def search_listings(user_id, radius_miles, search_string):
 	# Get the user
@@ -60,7 +67,7 @@ def search_listings(user_id, radius_miles, search_string):
 		raise InvalidUsage('UserID does not match any existing user', status_code=400)
 
 	# Calculate radius in meters
-	radius_meters 		= radius_miles*METERS_PER_MILE
+	radius_meters = radius_miles*METERS_PER_MILE
 
 	index = search.Index(name='Listing')
 	query_string = 'distance(location, geopoint('+str(u.last_known_location.lat)+','+str(u.last_known_location.lon)+')) < '+str(radius_meters)+' AND NOT owner_id='+str(user_id)+' AND name: '+search_string

@@ -69,6 +69,29 @@ def create_new_listing(user_id):
 
 
 
+
+@app.route('/listing/suggested_rates/total_value=<float:total_value>', methods=['GET'])
+def pricing_suggested_rates(total_value):
+	half_value = 0.5 * total_value
+
+	# Reasoning: If you rent for 3 days at the hourly rate, you pay for half of the item
+	hourly_rate = half_value / 72.0
+
+	# Reasoning: If you rent for 2 weeks at the daily rate, you pay for half of the item
+	daily_rate = half_value / 14.0
+
+	# Reasoning: If you rent for 5 weeks at the weekly rate, you pay for half of the item
+	weekly_rate = half_value / 5.0
+
+	data = {'hourly_rate'=hourly_rate, 'daily_rate'=daily_rate, 'weekly_rate'=weekly_rate}
+	resp = jsonify(data)
+	resp.status_code = 200
+	return resp
+
+
+
+
+
 # Delete listing from Search API and set status to 'Deleted' in Datastore
 @app.route('/listing/delete/listing_id=<int:listing_id>', methods=['DELETE'])
 def delete_listing(listing_id):
