@@ -49,6 +49,9 @@ curl http://molten-unison-112921.appspot.com/user/get_info/user_id=5752571553644
 ### Create Listing
 curl -H "Content-Type: application/json" -X POST -d "{\"category_id\":\"5713573250596864\", \"name\":\"Garbage Headphones\", \"item_description\":\"This is a test desc.\", \"total_value\":\"75\", \"hourly_rate\":\"7.5\", \"daily_rate\":\"15\", \"weekly_rate\":\"30\"}" http://molten-unison-112921.appspot.com/listing/create/user_id=5752571553644544
 
+### Get suggested rates for a listing given its total value
+curl http://molten-unison-112921.appspot.com/listing/suggested_rates/total_value=95.5
+
 ### Delete Listing
 curl -X DELETE http://molten-unison-112921.appspot.com/listing/delete/listing_id=5657382461898752
 

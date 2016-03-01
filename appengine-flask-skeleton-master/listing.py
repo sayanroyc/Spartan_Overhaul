@@ -75,15 +75,15 @@ def pricing_suggested_rates(total_value):
 	half_value = 0.5 * total_value
 
 	# Reasoning: If you rent for 3 days at the hourly rate, you pay for half of the item
-	hourly_rate = half_value / 72.0
+	hourly_rate = format(half_value/72.0,'.2f')
 
 	# Reasoning: If you rent for 2 weeks at the daily rate, you pay for half of the item
-	daily_rate = half_value / 14.0
+	daily_rate = format(half_value/14.0,'.2f')
 
 	# Reasoning: If you rent for 5 weeks at the weekly rate, you pay for half of the item
-	weekly_rate = half_value / 5.0
+	weekly_rate = format(half_value/5.0,'.2f')
 
-	data = {'hourly_rate'=hourly_rate, 'daily_rate'=daily_rate, 'weekly_rate'=weekly_rate}
+	data = {'hourly_rate':hourly_rate, 'daily_rate':daily_rate, 'weekly_rate':weekly_rate}
 	resp = jsonify(data)
 	resp.status_code = 200
 	return resp
