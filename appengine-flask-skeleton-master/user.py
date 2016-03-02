@@ -110,18 +110,15 @@ def deactivate_user(user_id):# Edit Datastore entity
 
 	# Set all of the user's listings to 'Deactivated'
 	u_key = ndb.Key('User', user_id)
-	# q = Listing.query(ndb.AND(Listing.owner == u_key, Listing.status != 'Deleted')).fetch()
 	qry = Listing.query(Listing.owner == u_key)
-	qry2 = qry.filter(Listing.status != 'Deleted')
-	listings = qry2.fetch()
+	listings = qry.fetch()
 	for l in listings:
-		# l = Listing.get_by_id(listing_key)
-		# l = listing_key.get()
-		l.status = 'Deactivated'
-		try:
-			l.put()
-		except:
-			abort(500)
+		if l.status != 'Deleted':
+			l.status = 'Deactivated'
+			try:
+				l.put()
+			except:
+				abort(500)
 
 
 	# Add the updated user status to the Datastore
