@@ -1,7 +1,7 @@
 from flask import Flask,request,json,jsonify,Response,abort
 import datetime, time
 from google.appengine.ext import ndb
-from models import User,MeetingLocation
+from models import User,Meeting_Location
 from error_handlers import InvalidUsage
 
 app = Flask(__name__)
@@ -21,7 +21,7 @@ def create_meeting_location(user_id):
 
 	u_key = ndb.Key('User', user_id)
 
-	l = MeetingLocation(user=u_key, google_places_id=google_places_id, address=address, 
+	l = Meeting_Location(user=u_key, google_places_id=google_places_id, address=address, 
 						name=name, is_private=is_private)
 
 	try:
@@ -40,7 +40,7 @@ def create_meeting_location(user_id):
 @app.route('/meeting_location/delete/location_id=<int:location_id>', methods=['DELETE'])
 def delete_meeting_location(location_id):
 	try:
-		ndb.Key('MeetingLocation', location_id).delete()
+		ndb.Key('Meeting_Location', location_id).delete()
 	except:
 		abort(500)
 
@@ -63,7 +63,7 @@ def update_meeting_location(location_id):
 	name 			 = json_data.get('name','')
 	is_private 		 = bool(json_data.get('is_private',''))
 
-	l = MeetingLocation.get_by_id(location_id)
+	l = Meeting_Location.get_by_id(location_id)
 	if l is None:
 		raise InvalidUsage('LocationID does not match any existing location.', status_code=400)
 
@@ -93,7 +93,7 @@ def get_user_meeting_locations(user_id):
 		raise InvalidUsage('User ID does not match any existing user', 400)
 
 	u_key	= ndb.Key('User', user_id)
-	qry 	= MeetingLocation.query(MeetingLocation.user == u_key)
+	qry 	= Meeting_Location.query(Meeting_Location.user == u_key)
 	listings = qry.fetch()
 
 	data = []
