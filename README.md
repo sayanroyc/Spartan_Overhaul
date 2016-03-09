@@ -18,14 +18,18 @@ To signal these functional distinctions in the methods, each file is given a spe
 
 
 appcfg.py -A molten-unison-112921 update app.yaml 
+
+
+curl -H "Content-Type: application/json" -X POST -d @json.txt http://molten-unison-112921.appspot.com/user/create
 ###################################################
 
 ########### USER FUNCTIONS ##############
 ### Create User
 curl -H "Content-Type: application/json" -X POST -d "{\"first_name\":\"JJ\", \"last_name\":\"Qi\", \"email\":\"jj@bygo.io\", \"phone_number\":\"9876549878\", \"password\":\"\", \"signup_method\":\"Phone Number\", \"location_lat\":\"40.106361\", \"location_lon\":\"-88.2327326\"}" http://molten-unison-112921.appspot.com/user/create
 
+
 ### Deactivate User
-curl -X DELETE http://molten-unison-112921.appspot.com/user/deactivate/user_id=5752571553644544
+curl -X DELETE http://molten-unison-112921.appspot.com/user/deactivate/user_id=5765606242516992
 
 ### Reactivate User
 curl -H "Content-Type: application/json" -X POST -d {} http://molten-unison-112921.appspot.com/user/reactivate/user_id=5752571553644544
@@ -74,15 +78,16 @@ curl http://molten-unison-112921.appspot.com/listing/get_listings/user_id=575257
 curl http://molten-unison-112921.appspot.com/listing/get_rented_listings/user_id=5752571553644544
 
 
+
 ########### MEETING LOCATION FUNCTIONS ##############
 ### Create Meeting Location
-curl -H "Content-Type: application/json" -X POST -d "{\"google_places_id\":\"ChIJv5lMaT_XDIgRsEtHigVjhEY\", \"name\":\"McDonald's\", \"address\":\"616 E Green St, Champaign, IL 61820, United States\", \"is_private\":\"0\"}" http://molten-unison-112921.appspot.com/meeting_location/create/user_id=5752571553644544
+curl -H "Content-Type: application/json" -X POST -d "{\"google_places_id\":\"ChIJmc6iNkfXDIgRqE-VN6vAsbI\", \"name\":\"Home\", \"address\":\"502 E Springfield Ave, Champaign, IL 61820, USA\", \"is_private\":\"True\"}" http://molten-unison-112921.appspot.com/meeting_location/create/user_id=5752571553644544
 
 ### Delete Meeting Location
 curl -X DELETE http://molten-unison-112921.appspot.com/meeting_location/delete/location_id=5629652273987584
 
 ### Update Meeting Location
-curl -H "Content-Type: application/json" -X POST -d "{\"google_places_id\":\"ChIJv5lMaT_XDIgRsEtHigVjhEY\", \"name\":\"i live here\", \"address\":\"PRIVATE\", \"is_private\":\"0\"}" http://molten-unison-112921.appspot.com/meeting_location/update/location_id=5629652273987584
+curl -H "Content-Type: application/json" -X POST -d "{\"google_places_id\":\"ChIJv5lMaT_XDIgRsEtHigVjhEY\", \"name\":\"McDonald's\", \"address\":\"502 E Springfield Ave, Champaign, IL 61820, USA\", \"is_private\":\"False\"}" http://molten-unison-112921.appspot.com/meeting_location/update/location_id=5688424874901504
 
 ### Get User's Meeting Locations
 curl http://molten-unison-112921.appspot.com/meeting_location/get_meeting_locations/user_id=5752571553644544
@@ -94,3 +99,27 @@ curl http://molten-unison-112921.appspot.com/advertised_listings/snapshots/user_
 
 ### Search listings by string
 curl http://molten-unison-112921.appspot.com/advertised_listings/user_id=6288801441775616/radius=10/search=stick%20usb
+
+
+
+########### RENT EVENT FUNCTIONS ##############
+### Propose a rent request
+curl -H "Content-Type: application/json" -X POST -d @json.txt http://molten-unison-112921.appspot.com/rent_event/propose/listing_id=5657382461898752/renter_id=5725851488354304
+
+### Accept a rent request
+curl -H "Content-Type: application/json" -X POST -d "{\"time\":\"2016 03 20 15:30:00\", \"location_id\":\"5688424874901504\"}" http://molten-unison-112921.appspot.com/rent_event/accept/rent_event_id=5202656289095680
+
+### Get a user's rent requests (requests from other using asking to rent an item)
+curl http://molten-unison-112921.appspot.com/rent_event/get_rent_events/user_id=5752571553644544
+
+### Get a specific rent request
+curl http://molten-unison-112921.appspot.com/rent_event/get_rent_event/rent_event_id=5202656289095680
+
+
+
+########### MEETING EVENT FUNCTIONS ##############
+### Get a specific meeting event
+curl http://molten-unison-112921.appspot.com/meeting_event/get_meeting_event/meeting_event_id=5174714574045184	
+
+### Get a list of user's meeting event
+curl http://molten-unison-112921.appspot.com/meeting_event/get_user_meeting_events/user_id=5752571553644544

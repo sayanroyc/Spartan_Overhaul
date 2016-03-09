@@ -33,11 +33,11 @@ handlers:
 - url: /meeting_location/.*
   script: meeting_location.app
 
-# - url: /search/.*
-#   script: search.app
+- url: /rent_event/.*
+  script: rent_event.app
 
-# - url: /update/.*
-#   script: update.app
+- url: /meeting_event/.*
+  script: meeting_event.app
 
 # - url: /delete/.*
 #   script: delete.app

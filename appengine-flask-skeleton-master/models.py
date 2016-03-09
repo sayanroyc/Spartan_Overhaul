@@ -31,15 +31,6 @@ class User(ndb.Model):
 	# profile_image	 										= ndb.BlobProperty(required=False, indexed=False)
 	# TODO: More required fields like BrainTree client token, images, address, etc.
 
-class Meeting_Location(ndb.Model):
-	user 				= ndb.KeyProperty(required=True, kind=User)
-	google_places_id 	= ndb.StringProperty(required=True)
-	name 				= ndb.StringProperty(required=True)
-	address 			= ndb.StringProperty(required=True)
-	date_created		= ndb.DateTimeProperty(auto_now_add=True)
-	date_last_modified 	= ndb.DateTimeProperty(auto_now=True)
-	is_private 			= ndb.BooleanProperty(required=True) # Whether or not any user can see this address
-
 class Listing(ndb.Model):
 	owner 				= ndb.KeyProperty(required=True, kind=User)
 	renter 				= ndb.KeyProperty(kind=User)
@@ -59,28 +50,51 @@ class Listing(ndb.Model):
 	# location_lon		= ndb.FloatProperty(required=True)
 	# TODO: More required fields like images, listed date, item location, user-selected related items, totalReturns, etc.
 
-class Proposed_Meeting_Time(ndb.Model):
+class Meeting_Location(ndb.Model):
+	user 				= ndb.KeyProperty(required=True, kind=User)
+	google_places_id 	= ndb.StringProperty(required=True)
+	name 				= ndb.StringProperty(required=True)
+	address 			= ndb.StringProperty(required=True)
+	date_created		= ndb.DateTimeProperty(auto_now_add=True)
+	date_last_modified 	= ndb.DateTimeProperty(auto_now=True)
+	is_private 			= ndb.BooleanProperty(required=True) # Whether or not any user can see this address
+
+class Meeting_Time(ndb.Model):
 	time 			= ndb.DateTimeProperty(required=True) # The time of the meeting proposal
 	duration		= ndb.FloatProperty(required=True, default=30.0) # Duration of the timeframe in minutes
-	is_available 	= ndb.BooleanProperty(required=True)
-
+	is_available	= ndb.BooleanProperty(required=True)
 
 class Meeting_Event(ndb.Model):
 	owner 						= ndb.KeyProperty(required=True, kind=User)
 	renter 						= ndb.KeyProperty(required=True, kind=User)
 	listing 					= ndb.KeyProperty(required=True, kind=Listing)
 	deliverer 					= ndb.StringProperty(required=True, choices=['Owner', 'Renter']) # person who has the item
-	status 						= ndb.StringProperty(required=True, choices=['Proposed', 'Scheduled', 'Delayed', 'Canceled', 'Rejected', 'Concluded'])
-	proposed_meeting_times 		= ndb.StructuredProperty(Proposed_Meeting_Time, repeated=True)
+	proposed_meeting_times 		= ndb.StructuredProperty(Meeting_Time, repeated=True)
 	proposed_meeting_locations 	= ndb.KeyProperty(kind=Meeting_Location, repeated=True)
+	status 						= ndb.StringProperty(required=True, choices=['Proposed', 'Scheduled', 'Delayed', 'Canceled', 'Rejected', 'Concluded'])
 	time 						= ndb.DateTimeProperty()
 	location 					= ndb.KeyProperty(kind=Meeting_Location)
-	date_created 				= ndb.DateTimeProperty()
 
 	# FIXME: Are these necessary? 
 	owner_confirmation_time 	= ndb.DateTimeProperty()	# Moment that the Owner confirms the Handoff
 	renter_confirmation_time 	= ndb.DateTimeProperty()	# Moment that the Renter confirms the Handoff
 	
+class Rent_Event(ndb.Model):
+	owner 						= ndb.KeyProperty(required=True, kind=User)
+	renter 						= ndb.KeyProperty(required=True, kind=User)
+	listing 					= ndb.KeyProperty(required=True, kind=Listing)
+	rental_rate 				= ndb.FloatProperty()
+	rental_time 				= ndb.IntegerProperty()
+	rental_time_frame 			= ndb.StringProperty(choices=['Hourly', 'Daily', 'Weekly'])
+	message 					= ndb.StringProperty()
+	status 						= ndb.StringProperty(required=True, choices=['Inquired', 'Proposed', 'Scheduled Start', 'Ongoing', 'Scheduled End', 'Canceled', 'Rejected', 'Concluded'])
+	# proposed_by 				= ndb.StringProperty(choices=['Renter', 'Owner']) 	# If the Renter proposes, think of this as a Rent Request. If the Owner proposes, the Renter is 'pre-approved' to Rent
+	start_meeting_event 		= ndb.KeyProperty(kind=Meeting_Event)
+	end_meeting_event 			= ndb.KeyProperty(kind=Meeting_Event)
+	date_created 				= ndb.DateTimeProperty(auto_now_add=True)
+	date_responded				= ndb.DateTimeProperty() # How long it takes for the Owner to respond to the request
+	date_ended					= ndb.DateTimeProperty() # How long it takes to go from creation to Canceled/Rejected/Concluded
+
 
 
 
@@ -96,30 +110,8 @@ class Meeting_Event(ndb.Model):
 # 	event = ndb.KeyProperty(required=True, kind=Meeting_Event)
 
 
-# TODO: Add duration property (how many time_frames the rental event is expected to last for)
-class Rent_Event(ndb.Model):
-	owner 				= ndb.KeyProperty(required=True, kind=User)
-	renter 				= ndb.KeyProperty(required=True, kind=User)
-	listing 			= ndb.KeyProperty(required=True, kind=Listing)
-	rental_rate 		= ndb.FloatProperty()
-	time_frame 			= ndb.StringProperty(choices=['Hour', 'Day', 'Week'])
-	status 				= ndb.StringProperty(required=True, choices=['Inquired', 'Proposed', 'Scheduled Start', 'Ongoing', 'Scheduled End', 'Canceled', 'Rejected', 'Concluded'])
-	proposed_by 		= ndb.StringProperty(choices=['Renter', 'Owner']) 	# If the Renter proposes, think of this as a Rent Request. If the Owner proposes, the Renter is 'pre-approved' to Rent
-	start_meeting_event = ndb.KeyProperty(kind=Meeting_Event)
-	end_meeting_event 	= ndb.KeyProperty(kind=Meeting_Event)
-	date_created 		= ndb.DateTimeProperty(required=True)
-	date_responded		= ndb.DateTimeProperty() # How long it takes for the Owner to respond to the request
-	date_ended			= ndb.DateTimeProperty() # How long it takes to go from creation to Canceled/Rejected/Concluded
-
-
 
 '''
-class ItemImage(ndb.Model):
-	# image = db.BlobProperty(required=True, indexed=False)
-	image 				= ndb.BlobKeyProperty()
-	item 				= ndb.KeyProperty(required=True, indexed=True, kind=Item) #, collection_name="images")
-	description 		= ndb.StringProperty(required=False, indexed=False)
-
 class ItemReview(ndb.Model):
 	user 				= ndb.KeyProperty(required=True, indexed=True, kind=User) #, collection_name="itemReviews")
 	item 				= ndb.KeyProperty(required=True, indexed=True, kind=Item) #, collection_name="reviews")
