@@ -4,7 +4,7 @@ import global_vars
 from google.appengine.ext import ndb
 from google.appengine.api import search
 from gcloud import storage
-from models import User,Listing,Category,CategoryWeight
+from models import User, Listing
 from error_handlers import InvalidUsage
 
 app = Flask(__name__)
@@ -41,6 +41,9 @@ def create_user():
 			raise InvalidUsage('Phone number is required!', 400)
 		if not password:
 			raise InvalidUsage('Password is required!', 400)
+	else:
+		if not facebook_id:
+			raise InvalidUsage('No facebook id given!', 400)
 		
 
 	# Validate password, email, and phone_number
@@ -50,23 +53,16 @@ def create_user():
 
 
 	# Create category weight vector
-	category_weights = []
-	categories = Category.query()
-	for cat in categories.iter():
-		cat_weight = CategoryWeight(category=cat.key, weight=1.0)
-		category_weights.append(cat_weight)
+	# category_weights = []
+	# categories = Category.query()
+	# for cat in categories.iter():
+	# 	cat_weight = CategoryWeight(category=cat.key, weight=1.0)
+	# 	category_weights.append(cat_weight)
 
-
-	status = 'Active'
-	location = ndb.GeoPt(40.112814,-88.231786)
 
 	# Add user to Datastore
-	u = User(first_name=first_name, last_name=last_name, category_weights=category_weights, 
-			 phone_number=phone_number, is_phone_number_verified=False, email=email, 
-			 is_email_verified=False, password=password, facebook_id=facebook_id, 
-			 signup_method=signup_method, last_known_location=location,
-			 credit=0.0, debit=0.0, status=status)
-	# u = User(first_name=first_name, last_name=last_name, category_weights=category_weights, phone_number=phone_number, is_phone_number_verified=False, email=email, is_email_verified=False, password=password, facebook_id=facebook_id, signup_method=signup_method, last_known_location=ndb.GeoPt(location_lat,location_lon), credit=0.0, debit=0.0, date_created=now, date_last_modified=now)
+	u = User(first_name=first_name, last_name=last_name, phone_number=phone_number, email=email, 
+			 password=password, facebook_id=facebook_id, signup_method=signup_method)
 	try:
 		user_key = u.put()
 		user_id  = str(user_key.id())
@@ -120,7 +116,6 @@ def deactivate_user(user_id):# Edit Datastore entity
 			except:
 				abort(500)
 
-
 	# Add the updated user status to the Datastore
 	try:
 		u.put()
@@ -136,12 +131,25 @@ def deactivate_user(user_id):# Edit Datastore entity
 		abort(500)
 
 
-
 	# Return response
 	data = {'user_id deactivated':user_id, 'date_deactivated':u.date_last_modified}
 	resp = jsonify(data)
 	resp.status_code = 200
 	return resp
+
+
+
+
+@app.route('/user/delete_from_search/user_id=<int:user_id>', methods=['DELETE'])
+def delete_from_search(user_id):
+	# Delete Search App entity
+	try:
+		index = search.Index(name='User')
+		index.delete(str(user_id))
+	except:
+		abort(500)
+
+	return 'User successfully deleted from Search App', 200
 
 
 
@@ -193,6 +201,8 @@ def reactivate_user(user_id):
 	resp = jsonify(data)
 	resp.status_code = 201
 	return resp
+
+
 
 
 # Update a user's information
@@ -288,13 +298,17 @@ def new_user_image(user_id):
 
 	# Upload the user's profile image
 	# image = bucket.blob(blob_name=str(user_id)+'/'+filename)
-	path = str(user_id)+'/profile_picture.jpg'
+	# path = str(user_id)+'/profile_picture.jpg'
+	path = str(user_id)+'/'+filename
 	image = bucket.blob(blob_name=path)
 	image.upload_from_file(file_obj=userfile, size=size, content_type='image/jpeg')
 
 	# Hacky way of making our files public..
 	image.acl.all().grant_read()
 	image.acl.save()
+
+	u.profile_picture_path = path
+	u.put()
 
 	resp = jsonify({'image_path':path, 'image_media_link':image.media_link})
 	resp.status_code = 201
@@ -304,24 +318,25 @@ def new_user_image(user_id):
 
 
 # Delete a user's profile picture
-@app.route('/user/delete_user_image/path=<path:path>', methods=['DELETE'])
-def delete_user_image(path):
+@app.route('/user/delete_user_image/user_id=<int:user_id>', methods=['DELETE'])
+def delete_user_image(user_id):
 	# Check to see if the user exists
-	# u = User.get_by_id(user_id)
-	# if u is None:
-		# raise InvalidUsage('UserID does not match any existing user', status_code=400)
+	u = User.get_by_id(user_id)
+	if u is None:
+		raise InvalidUsage('UserID does not match any existing user', status_code=400)
+
+	path = u.profile_picture_path
+	if path is None:
+		raise InvalidUsage('User has no profile picture.', status_code=400)
 
 	# Create client for interfacing with Cloud Storage API
 	client = storage.Client()
 	bucket = client.get_bucket(global_vars.USER_IMG_BUCKET)
 
-	# Get the user image from cloud storage and delete it
-	# user_image = bucket.list_blobs(prefix=str(user_id))
-	# for image in user_image:
-	# 	bucket.delete_blob(image)
-
-	# path = str(user_id)+'/profile_picture.jpg'
 	bucket.delete_blob(path)
+
+	u.profile_picture_path = None
+	u.put()
 
 	now = datetime.datetime.now()
 
@@ -345,18 +360,21 @@ def get_user_info(user_id):
 	last_name 			= u.last_name
 	phone_number 		= u.phone_number
 	email 				= u.email
-
+	path 				= u.profile_picture_path
 
 	# Get user's profile picture
-	client = storage.Client()
-	bucket = client.get_bucket(global_vars.USER_IMG_BUCKET)
+	if path != None:
+		client = storage.Client()
+		bucket = client.get_bucket(global_vars.USER_IMG_BUCKET)
 
-	path = str(user_id) + '/profile_picture.jpg'
-	user_img = bucket.get_blob(path)
+		# path = str(user_id) + '/profile_picture.jpg'
+		user_img = bucket.get_blob(path)
+	else:
+		user_img = None
 	
 	if user_img == None:
 		user_img_media_link = None
-		path = None
+		image_path = None
 	else:
 		user_img_media_link = user_img.media_link
 		image_path = user_img.path

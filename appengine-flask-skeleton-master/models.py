@@ -1,51 +1,57 @@
 from google.appengine.ext import ndb
 
-class Category(ndb.Model):
-	name 				= ndb.StringProperty(required=True)
+# class Category(ndb.Model):
+# 	name 				= ndb.StringProperty(required=True)
 
-class CategoryWeight(ndb.Model):
-	category 			= ndb.KeyProperty(required=True, kind=Category)
-	weight				= ndb.FloatProperty(required=True)
+# class CategoryWeight(ndb.Model):
+# 	category 			= ndb.KeyProperty(required=True, kind=Category)
+# 	weight				= ndb.FloatProperty(required=True)
+
+class Tag(ndb.Model):
+	name 				= ndb.StringProperty(required=True)
 
 class User(ndb.Model):
 	first_name 												= ndb.StringProperty(required=True)
 	last_name 												= ndb.StringProperty(required=True)
 	notification_tokens										= ndb.StringProperty(repeated=True)
 	phone_number 											= ndb.StringProperty()
-	is_phone_number_verified 								= ndb.BooleanProperty(required=True)
-	phone_number_verification_code 							= ndb.IntegerProperty()
-	phone_number_verification_code_distribution_datetime 	= ndb.DateTimeProperty()
+	is_phone_number_verified 								= ndb.BooleanProperty(default=False)
 	email 													= ndb.StringProperty(required=True)
-	is_email_verified 										= ndb.BooleanProperty(required=True)
-	email_verification_code 								= ndb.IntegerProperty()
+	is_email_verified 										= ndb.BooleanProperty(default=False)
 	password 												= ndb.StringProperty()
 	facebook_id												= ndb.StringProperty()
 	signup_method 											= ndb.StringProperty(required=True, choices=['Facebook', 'Email', 'Phone Number'])
-	credit 													= ndb.FloatProperty(required=True) # How much money the user owes at the end of the week
-	debit 													= ndb.FloatProperty(required=True) # How much money the user has credited to their account (i.e. $15 from signing up or promotions)
+	credit 													= ndb.FloatProperty(default=0.0) # How much money the user owes at the end of the week
+	debit 													= ndb.FloatProperty(default=0.0) # How much money the user has credited to their account (i.e. $15 from signing up or promotions)
 	date_created 											= ndb.DateTimeProperty(auto_now_add=True)
 	date_last_modified 										= ndb.DateTimeProperty(auto_now=True)
-	status													= ndb.StringProperty(required=True, choices=['Active', 'Inactive', 'Deactivated'])
-	last_known_location										= ndb.GeoPtProperty()
-	category_weights										= ndb.StructuredProperty(CategoryWeight, repeated=True)
-	# profile_image	 										= ndb.BlobProperty(required=False, indexed=False)
-	# TODO: More required fields like BrainTree client token, images, address, etc.
+	status													= ndb.StringProperty(default='Active', choices=['Active', 'Inactive', 'Deactivated'])
+	# last_known_location										= ndb.GeoPtProperty()
+	profile_picture_path									= ndb.StringProperty()
+	# category_weights										= ndb.StructuredProperty(CategoryWeight, repeated=True)
+	# TODO: Other required fields?
+
+class Verification(ndb.Model):
+	account													= ndb.KeyProperty(required=True, kind=User)
+	phone_number_verification_code 							= ndb.IntegerProperty()
+	email_verification_code 								= ndb.IntegerProperty()
+	verification_code_distribution_datetime 				= ndb.DateTimeProperty(auto_now_add=True)
 
 class Listing(ndb.Model):
 	owner 				= ndb.KeyProperty(required=True, kind=User)
 	renter 				= ndb.KeyProperty(kind=User)
 	status 				= ndb.StringProperty(required=True, choices=['Available', 'Reserved', 'Rented', 'Unavailable', 'Damaged', 'Unlisted', 'Deactivated', 'Deleted'])
 	name 				= ndb.StringProperty(required=True)
-	item_description 	= ndb.StringProperty(required=True)
+	item_description 	= ndb.StringProperty()
 	rating		 		= ndb.FloatProperty()	# Value of -1 is used to signal no rating
 	total_value 		= ndb.FloatProperty(required=True)
 	hourly_rate 		= ndb.FloatProperty(required=True)
 	daily_rate 			= ndb.FloatProperty(required=True)
 	weekly_rate			= ndb.FloatProperty(required=True)
-	category 			= ndb.KeyProperty(required=True, kind=Category)
+	# category 			= ndb.KeyProperty(required=True, kind=Category)
 	date_created		= ndb.DateTimeProperty(auto_now_add=True)
 	date_last_modified 	= ndb.DateTimeProperty(auto_now=True)
-	location			= ndb.GeoPtProperty(required=True, indexed=True)
+	location			= ndb.GeoPtProperty(required=True)
 	# location_lat		= ndb.FloatProperty(required=True)
 	# location_lon		= ndb.FloatProperty(required=True)
 	# TODO: More required fields like images, listed date, item location, user-selected related items, totalReturns, etc.
