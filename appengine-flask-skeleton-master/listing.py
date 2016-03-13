@@ -4,7 +4,7 @@ import global_vars
 from google.appengine.ext import ndb
 from google.appengine.api import search
 from gcloud import storage
-from models import User,Category,Listing
+from models import User,Listing
 from error_handlers import InvalidUsage
 
 app = Flask(__name__)
@@ -17,10 +17,6 @@ def create_new_listing(user_id):
 	name 				= json_data.get('name','')
 	item_description 	= json_data.get('item_description','')
 	total_value			= float(json_data.get('total_value',''))
-	hourly_rate 		= float(json_data.get('hourly_rate',''))
-	daily_rate			= float(json_data.get('daily_rate',''))
-	weekly_rate 		= float(json_data.get('weekly_rate',''))
-	category_id 		= int(json_data.get('category_id',''))
 	# location_lat 		= float(json_data.get('location_lat',''))
 	# location_lon		= float(json_data.get('location_lon',''))
 
@@ -31,18 +27,20 @@ def create_new_listing(user_id):
 		raise InvalidUsage('UserID does not match any existing user', status_code=400)
 
 	u_key = ndb.Key('User', user_id)
-	c_key = ndb.Key('Category', category_id)
 
 	# if total_value > MAX_ITEM_VALUE:
 	# 	raise InvalidUsage('Total value is too large', status_code=400)
 
 	status = 'Available'
 	rating = -1.0
+	location = ndb.GeoPt(40.112814,-88.231786)
+
+	# INSERT FUNCTION TO CALCULATE RENTAL RATES HERE
 
 	# Add listing to Datastore
 	l = Listing(owner=u_key, status=status, name=name, item_description=item_description, 
 				rating=rating, total_value=total_value, hourly_rate=hourly_rate, daily_rate=daily_rate, 
-				weekly_rate=weekly_rate, category=c_key, location=u.last_known_location)
+				weekly_rate=weekly_rate, location=location)
 	try:
 		listing_key = l.put()
 		listing_id	= str(listing_key.id())
@@ -53,7 +51,7 @@ def create_new_listing(user_id):
 	new_item = search.Document(
 		doc_id=listing_id,
 		fields=[search.TextField(name='name', value=name),
-				search.GeoField(name='location', value=search.GeoPoint(u.last_known_location.lat,u.last_known_location.lon)),
+				search.GeoField(name='location', value=search.GeoPoint(location.lat,location.lon)),
 				search.TextField(name='owner_id', value=str(user_id))])
 	try:
 		index = search.Index(name='Listing')
@@ -133,7 +131,6 @@ def delete_listing(listing_id):
 def update_listing(listing_id):
 	json_data 		 = request.get_json()
 	name 			 = json_data.get('name','')
-	category_id 	 = int(json_data.get('category_id',''))
 	total_value 	 = float(json_data.get('total_value',''))
 	hourly_rate 	 = float(json_data.get('hourly_rate',''))
 	daily_rate 		 = float(json_data.get('daily_rate',''))
@@ -145,13 +142,9 @@ def update_listing(listing_id):
 	l = Listing.get_by_id(listing_id)
 	if l is None:
 		raise InvalidUsage('ItemID does not match any existing item', status_code=400)
-	
-	# Get the Category key
-	# category_key = ndb.Key('Category', category_id)
 
 	# Update the item attributes
 	l.name 				= name
-	l.category 			= ndb.Key('Category', category_id)
 	l.total_value 		= total_value
 	l.hourly_rate		= hourly_rate
 	l.daily_rate 		= daily_rate
@@ -186,7 +179,7 @@ def update_listing(listing_id):
 			abort(500)
 
 	# Return the attributes of the new item
-	data = {'name':name, 'category_id':str(category_id), 'total_value':total_value, 'hourly_rate':hourly_rate, 'daily_rate':daily_rate, 'weekly_rate':weekly_rate, 'status':status, 'item_description':item_description}
+	data = {'name':name, 'total_value':total_value, 'hourly_rate':hourly_rate, 'daily_rate':daily_rate, 'weekly_rate':weekly_rate, 'status':status, 'item_description':item_description}
 	resp = jsonify(data)
 	resp.status_code = 200
 	return resp
@@ -269,7 +262,7 @@ def get_listing_info(listing_id):
 					'renter_id':l.renter.id() if l.renter else None,'status':l.status, 
 					'item_description':l.item_description, 'rating':l.rating, 'total_value':l.total_value, 
 					'hourly_rate':l.hourly_rate, 'daily_rate':l.daily_rate, 'weekly_rate':l.weekly_rate, 
-					'category_id':l.category.id(),'date_last_modified':l.date_last_modified,
+					'date_last_modified':l.date_last_modified,
 					'image_media_links':listing_img_media_links}
 
 	resp = jsonify(listing_data)
@@ -295,7 +288,7 @@ def get_user_listings(user_id):
 						'renter_id':l.renter.id() if l.renter else None,'status':l.status, 
 						'item_description':l.item_description, 'rating':l.rating, 'total_value':l.total_value, 
 						'hourly_rate':l.hourly_rate, 'daily_rate':l.daily_rate, 'weekly_rate':l.weekly_rate, 
-						'category_id':l.category.id(),'date_last_modified':l.date_last_modified,
+						'date_last_modified':l.date_last_modified,
 						'image_media_links':get_listing_images(l.key.id())}
 		data += [listing_data]
 
@@ -323,7 +316,7 @@ def get_user_rented_listings(user_id):
 						'renter_id':l.renter.id() if l.renter else None,'status':l.status, 
 						'item_description':l.item_description, 'rating':l.rating, 'total_value':l.total_value, 
 						'hourly_rate':l.hourly_rate, 'daily_rate':l.daily_rate, 'weekly_rate':l.weekly_rate, 
-						'category_id':l.category.id(),'date_last_modified':l.date_last_modified,
+						'date_last_modified':l.date_last_modified,
 						'image_media_links':get_listing_images(l.key.id())}
 		data += [listing_data]
 

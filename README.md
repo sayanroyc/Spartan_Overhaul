@@ -25,7 +25,7 @@ curl -H "Content-Type: application/json" -X POST -d @json.txt http://molten-unis
 
 ########### USER FUNCTIONS ##############
 ### Create User
-curl -H "Content-Type: application/json" -X POST -d "{\"first_name\":\"JJ\", \"last_name\":\"Qi\", \"email\":\"jj@bygo.io\", \"phone_number\":\"9876549878\", \"password\":\"\", \"signup_method\":\"Phone Number\", \"location_lat\":\"40.106361\", \"location_lon\":\"-88.2327326\"}" http://molten-unison-112921.appspot.com/user/create
+curl -H "Content-Type: application/json" -X POST -d "{\"first_name\":\"JJ\", \"last_name\":\"Qi\", \"email\":\"jj@bygo.io\", \"phone_number\":\"9876549878\", \"password\":\"\", \"signup_method\":\"Phone Number\"}" http://molten-unison-112921.appspot.com/user/create
 
 
 ### Deactivate User

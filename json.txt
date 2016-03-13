@@ -1,0 +1,20 @@
+{
+	"rental_rate":15.0, 
+	"time_frame":"Day", 
+	"date_last_modified":"Wed, 02 Mar 2016 09:30:59 GMT", 
+	"message":"Sayan you're the most perfect person on this planet.", 
+	"proposed_meeting_times_data":"[
+		{
+			"time":"2016 03 20 15:30:00", 
+			"duration":30.0
+		},
+		{
+			"time":"2016 03 20 16:30:00", 
+			"duration":30.0
+		}
+	]",
+	"proposed_meeting_location_ids":"[
+		5642554087309312, 
+		5709436928655360
+	]"
+}
