@@ -36,6 +36,7 @@ def create_new_listing(user_id):
 	location = ndb.GeoPt(40.112814,-88.231786)
 
 	# INSERT FUNCTION TO CALCULATE RENTAL RATES HERE
+	hourly_rate,daily_rate,weekly_rate = get_rates(total_value)
 
 	# Add listing to Datastore
 	l = Listing(owner=u_key, status=status, name=name, item_description=item_description, 
@@ -66,25 +67,6 @@ def create_new_listing(user_id):
 	return resp
 
 
-
-
-@app.route('/listing/suggested_rates/total_value=<float:total_value>', methods=['GET'])
-def pricing_suggested_rates(total_value):
-	half_value = 0.5 * total_value
-
-	# Reasoning: If you rent for 3 days at the hourly rate, you pay for half of the item
-	hourly_rate = format(half_value/72.0,'.2f')
-
-	# Reasoning: If you rent for 2 weeks at the daily rate, you pay for half of the item
-	daily_rate = format(half_value/14.0,'.2f')
-
-	# Reasoning: If you rent for 5 weeks at the weekly rate, you pay for half of the item
-	weekly_rate = format(half_value/5.0,'.2f')
-
-	data = {'hourly_rate':hourly_rate, 'daily_rate':daily_rate, 'weekly_rate':weekly_rate}
-	resp = jsonify(data)
-	resp.status_code = 200
-	return resp
 
 
 
@@ -327,6 +309,17 @@ def get_user_rented_listings(user_id):
 
 
 
+# Helper function to return calculated hourly, daily, or weekly rates
+def get_rates(listing_value):	
+	hr = listing_value/24.0
+	dr = listing_value/8.0
+	wr = listing_value/4.0
+
+	return hr, dr, wr
+
+
+
+
 # Helper function to return a listing's image links
 def get_listing_images(listing_id):	
 	client = storage.Client()
@@ -338,7 +331,6 @@ def get_listing_images(listing_id):
 		listing_img_media_links += [img_object.media_link]
 
 	return listing_img_media_links
-
 
 
 
